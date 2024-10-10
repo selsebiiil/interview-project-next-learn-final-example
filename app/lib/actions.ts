@@ -123,6 +123,22 @@ export async function deleteInvoice(id: string) {
   }
 }
 
+export async function updateInvoiceStatus(id: string, newStatus: string) {
+  // throw new Error('Failed to Delete Invoice');
+
+  try {
+    await sql`
+    UPDATE invoices
+    SET status = ${newStatus}
+    WHERE id = ${id}
+    `;
+    revalidatePath("/dashboard/invoices");
+    return { message: "Updated Invoice Status" };
+  } catch (error) {
+    return { message: "Database Error: Failed to Update Invoice Status" };
+  }
+}
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData
