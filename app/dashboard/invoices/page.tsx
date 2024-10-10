@@ -1,29 +1,37 @@
-import Pagination from '@/app/ui/invoices/pagination';
-import Search from '@/app/ui/search';
-import Table from '@/app/ui/invoices/table';
-import { CreateInvoice } from '@/app/ui/invoices/buttons';
-import { lusitana } from '@/app/ui/fonts';
-import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
-import { Suspense } from 'react';
-import { fetchInvoicesPages } from '@/app/lib/data';
-import { Metadata } from 'next';
+import Pagination from "@/app/ui/invoices/pagination";
+import Search from "@/app/ui/search";
+import Table from "@/app/ui/invoices/table";
+import { CreateInvoice } from "@/app/ui/invoices/buttons";
+import { lusitana } from "@/app/ui/fonts";
+import { InvoicesTableSkeleton } from "@/app/ui/skeletons";
+import { Suspense } from "react";
+import { fetchInvoicesPages } from "@/app/lib/data";
+import { Metadata } from "next";
+import Tabs from "@/app/ui/invoices/tabs";
 
 export const metadata: Metadata = {
-  title: 'Invoices',
+  title: "Invoices",
 };
-
+const tabs = [
+  { label: "All", value: "" },
+  { label: "Paid", value: "paid" },
+  { label: "Pending", value: "pending" },
+  { label: "Overdue", value: "overdue" },
+  { label: "Canceled", value: "canceled" },
+];
 export default async function Page({
   searchParams,
 }: {
   searchParams?: {
     query?: string;
     page?: string;
+    status?: string;
   };
 }) {
-  const query = searchParams?.query || '';
+  const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-
-  const totalPages = await fetchInvoicesPages(query);
+  const statusFilter = searchParams?.status || "";
+  const totalPages = await fetchInvoicesPages(query, statusFilter);
 
   return (
     <div className="w-full">
@@ -34,8 +42,13 @@ export default async function Page({
         <Search placeholder="Search invoices..." />
         <CreateInvoice />
       </div>
+      <Tabs
+        tabs={tabs}
+        selectedTab={statusFilter}
+        searchParams={searchParams || {}}
+      ></Tabs>
       <Suspense key={query + currentPage} fallback={<InvoicesTableSkeleton />}>
-        <Table query={query} currentPage={currentPage} />
+        <Table query={query} currentPage={currentPage} status={statusFilter} />
       </Suspense>
       <div className="mt-5 flex w-full justify-center">
         <Pagination totalPages={totalPages} />

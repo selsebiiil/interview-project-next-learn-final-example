@@ -86,12 +86,14 @@ export async function fetchCardData() {
 const ITEMS_PER_PAGE = 6;
 export async function fetchFilteredInvoices(
   query: string,
-  currentPage: number
+  currentPage: number,
+  status: string
 ) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
-    const invoices = await sql<InvoicesTable>`
+    let params = [`%${query}%`];
+    let queryStr = `
       SELECT
         invoices.id,
         invoices.amount,
@@ -106,14 +108,34 @@ export async function fetchFilteredInvoices(
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+        (
+          customers.name ILIKE $1 OR
+          customers.email ILIKE $1 OR
+          invoices.amount::text ILIKE $1 OR
+          invoices.date::text ILIKE $1 OR
+          invoices.status ILIKE $1
+        )
     `;
+    if (status) {
+      if (status === "overdue") {
+        queryStr += `
+        AND invoices.status = 'pending'
+        AND invoices.date < CURRENT_DATE - INTERVAL '14 days'
+        `;
+      } else if (status === "pending") {
+        queryStr += `
+        AND invoices.status = 'pending'
+        AND invoices.date > CURRENT_DATE - INTERVAL '14 days'
+        `;
+      } else {
+        params.push(status);
+        queryStr += `AND invoices.status=$2`;
+      }
+    }
+    queryStr += `
+     ORDER BY invoices.date DESC
+     LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}`;
+    const invoices = await sql.query(queryStr, params);
     return invoices.rows;
   } catch (error) {
     console.error("Database Error:", error);
@@ -121,19 +143,39 @@ export async function fetchFilteredInvoices(
   }
 }
 
-export async function fetchInvoicesPages(query: string) {
+export async function fetchInvoicesPages(query: string, status: string) {
   try {
-    const count = await sql`SELECT COUNT(*)
+    let params = [`%${query}%`];
+    let queryStr = `
+    SELECT COUNT(*)
     FROM invoices
     JOIN customers ON invoices.customer_id = customers.id
     WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
+      (
+        customers.name ILIKE $1 OR
+        customers.email ILIKE $1 OR
+        invoices.amount::text ILIKE $1 OR
+        invoices.date::text ILIKE $1 OR
+        invoices.status ILIKE $1
+      )
   `;
-
+    if (status) {
+      if (status === "overdue") {
+        queryStr += `
+        AND invoices.status = 'pending'
+        AND invoices.date < CURRENT_DATE - INTERVAL '14 days'
+        `;
+      } else if (status === "pending") {
+        queryStr += `
+        AND invoices.status = 'pending'
+        AND invoices.date > CURRENT_DATE - INTERVAL '14 days'
+        `;
+      } else {
+        params.push(status);
+        queryStr += `AND invoices.status=$2`;
+      }
+    }
+    const count = await sql.query(queryStr, params);
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
     return totalPages;
   } catch (error) {
