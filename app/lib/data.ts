@@ -209,6 +209,30 @@ export async function fetchInvoiceById(id: string) {
   }
 }
 
+export async function fetchAuditLogs(id: string) {
+  try {
+    const data = await sql`
+      SELECT
+        al.id,
+        al.invoice_id,
+        al.previous_status,
+        al.new_status,
+        al.changed_by,
+        al.changed_at,
+        al.action_type,
+        u.name AS changed_by_name 
+      FROM audit_logs al
+      JOIN users u ON u.id=al.changed_by
+      WHERE al.invoice_id = ${id}
+      ORDER BY al.changed_at DESC;
+    `;
+    return data.rows;
+  } catch (error) {
+    console.error("Database Error:", error);
+    throw new Error("Failed to fetch logs.");
+  }
+}
+
 export async function fetchCustomers() {
   try {
     const data = await sql<CustomerField>`

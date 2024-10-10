@@ -10,7 +10,7 @@ import {
 import clsx from "clsx";
 import { useRef, useState } from "react";
 import Dropdown from "./dropdown";
-import { updateInvoiceStatus } from "@/app/lib/actions";
+import { addAuditLog, updateInvoiceStatus } from "@/app/lib/actions";
 import { useOnClickOutside } from "@/app/hooks/useOnClickOutside";
 
 const statusOptions = [
@@ -40,6 +40,7 @@ export default function InvoiceStatus({
   });
   const handleStatusChange = async (newStatus: string) => {
     await updateInvoiceStatus(id, newStatus);
+    await addAuditLog(id, newStatus, status, "change");
     setdropDownOpen(false);
   };
   useOnClickOutside(dropDownRef, () => setdropDownOpen(false));

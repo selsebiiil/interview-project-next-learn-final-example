@@ -101,6 +101,20 @@ async function seedRevenue() {
   return insertedRevenue;
 }
 
+async function seedAuditLogs() {
+  await client.sql`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+      invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
+      previous_status VARCHAR(255),
+      new_status VARCHAR(255) NOT NULL,
+      changed_by UUID REFERENCES users(id) ON DELETE CASCADE,
+      changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('change', 'restore'))
+    );
+  `;
+}
+
 export async function GET() {
   // return Response.json({
   //   message:
@@ -112,6 +126,7 @@ export async function GET() {
     await seedCustomers();
     await seedInvoices();
     await seedRevenue();
+    await seedAuditLogs();
     await client.sql`COMMIT`;
 
     return Response.json({ message: "Database seeded successfully" });

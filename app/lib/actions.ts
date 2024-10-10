@@ -4,7 +4,7 @@ import { z } from "zod";
 import { sql } from "@vercel/postgres";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { signIn } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { AuthError } from "next-auth";
 
 const FormSchema = z.object({
@@ -107,7 +107,7 @@ export async function updateInvoice(
   redirect("/dashboard/invoices");
 }
 
-export async function deleteInvoice(id: string) {
+export async function deleteInvoice(id: string, status: string) {
   // throw new Error('Failed to Delete Invoice');
 
   try {
@@ -116,6 +116,7 @@ export async function deleteInvoice(id: string) {
     SET status = 'canceled'
     WHERE id = ${id}
     `;
+    await addAuditLog(id, "canceled", status, "change");
     revalidatePath("/dashboard/invoices");
     return { message: "Canceled Invoice" };
   } catch (error) {
@@ -136,6 +137,32 @@ export async function updateInvoiceStatus(id: string, newStatus: string) {
     return { message: "Updated Invoice Status" };
   } catch (error) {
     return { message: "Database Error: Failed to Update Invoice Status" };
+  }
+}
+
+export async function addAuditLog(
+  id: string,
+  newStatus: string,
+  prevStatus: string,
+  action_type: string
+) {
+  try {
+    const session = await auth();
+    await sql`
+    INSERT INTO audit_logs (invoice_id, previous_status, new_status, changed_by, changed_at,action_type)
+    VALUES (
+      ${id}, 
+      ${prevStatus}, 
+      ${newStatus}, 
+      ${session?.user?.id},
+      NOW(),
+      ${action_type}
+    )
+  `;
+    revalidatePath("/dashboard/invoices");
+    return { message: "Added Audit Log" };
+  } catch (error) {
+    return { message: "Database Error: Failed to Add Log." };
   }
 }
 
