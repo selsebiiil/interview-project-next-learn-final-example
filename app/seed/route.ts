@@ -101,20 +101,6 @@ async function seedRevenue() {
   return insertedRevenue;
 }
 
-// async function seedAuditLogs() {
-//   await client.sql`
-//     CREATE TABLE IF NOT EXISTS audit_logs (
-//       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-//       invoice_id UUID REFERENCES invoices(id) ON PRIMARY KEY,
-//       changed_by_id UUID REFERENCES users(id) ON PRIMARY KEY,
-//       changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//       previous_state VARCHAR(255) NOT NULL,
-//       new_state VARCHAR(255) NOT NULL,
-//       action_type VARCHAR(20) NOT NULL CHECK (action_type IN ('change', 'restore'))
-//     );
-//   `;
-// }
-
 export async function GET() {
   // return Response.json({
   //   message:
