@@ -126,7 +126,7 @@ export async function GET() {
     await seedCustomers();
     await seedInvoices();
     await seedRevenue();
-    await seedAuditLogs();
+    //await seedAuditLogs();
     await client.sql`COMMIT`;
 
     return Response.json({ message: "Database seeded successfully" });
